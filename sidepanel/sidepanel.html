@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabVault — Workspace Manager</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header class="header">
+    <h1 class="header__title">TabVault</h1>
+  </header>
+
+  <div id="switch-overlay" class="switch-overlay hidden">
+    <div class="spinner"></div>
+    <span id="switch-status" class="switch-overlay__text">Saving workspace…</span>
+  </div>
+
+  <div id="error-banner" class="error-banner hidden">
+    <span id="error-text"></span>
+    <button id="error-dismiss" class="error-banner__dismiss">&times;</button>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <span class="loading__text">Loading workspaces…</span>
+  </div>
+
+  <section id="active-section" class="active-section hidden">
+    <div id="active-card" class="active-card"></div>
+  </section>
+
+  <div class="search-bar">
+    <input id="search-input" type="text" class="search-bar__input" placeholder="Search workspaces…" autocomplete="off">
+  </div>
+
+  <section id="sleeping-section" class="sleeping-section hidden">
+    <h2 class="section-title">Sleeping Workspaces</h2>
+    <ul id="sleeping-list" class="sleeping-list"></ul>
+  </section>
+
+  <div id="empty-state" class="empty-state hidden">
+    <p>No sleeping workspaces yet.</p>
+  </div>
+
+  <div id="new-workspace-form" class="new-workspace-form hidden">
+    <input id="new-name" type="text" class="new-workspace-form__input" placeholder="Workspace name" maxlength="30" autocomplete="off">
+    <div id="color-picker" class="color-picker"></div>
+    <div class="new-workspace-form__actions">
+      <button id="create-btn" class="btn btn--primary" disabled>Create</button>
+      <button id="cancel-btn" class="btn btn--ghost">Cancel</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <button id="new-workspace-btn" class="btn btn--primary btn--full">+ New Workspace</button>
+  </footer>
+
+  <!-- Delete confirmation dialog -->
+  <div id="delete-dialog" class="dialog-overlay hidden">
+    <div class="dialog">
+      <p class="dialog__text">Delete workspace <strong id="delete-ws-name"></strong>?<br>This cannot be undone.</p>
+      <div class="dialog__actions">
+        <button id="delete-confirm" class="btn btn--danger">Delete</button>
+        <button id="delete-cancel" class="btn btn--ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename dialog -->
+  <div id="rename-dialog" class="dialog-overlay hidden">
+    <div class="dialog">
+      <p class="dialog__text">Rename workspace</p>
+      <input id="rename-input" type="text" class="dialog__input" maxlength="30" autocomplete="off">
+      <div class="dialog__actions">
+        <button id="rename-confirm" class="btn btn--primary">Rename</button>
+        <button id="rename-cancel" class="btn btn--ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js" type="module"></script>
+</body>
+</html>

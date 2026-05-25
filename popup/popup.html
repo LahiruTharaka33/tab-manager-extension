@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=320">
+  <title>TabVault</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="header">
+    <h1 class="header__title">TabVault</h1>
+    <button id="open-sidepanel" class="header__link" title="Open Side Panel">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="2" width="14" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+        <line x1="6" y1="2" x2="6" y2="14" stroke="currentColor" stroke-width="1.4"/>
+      </svg>
+    </button>
+  </header>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    <span class="loading__text">Loading workspaces…</span>
+  </div>
+
+  <div id="switch-overlay" class="switch-overlay hidden">
+    <div class="spinner"></div>
+    <span id="switch-status" class="switch-overlay__text">Saving workspace…</span>
+  </div>
+
+  <div id="error-banner" class="error-banner hidden">
+    <span id="error-text"></span>
+    <button id="error-dismiss" class="error-banner__dismiss">&times;</button>
+  </div>
+
+  <ul id="workspace-list" class="workspace-list hidden"></ul>
+
+  <div id="new-workspace-form" class="new-workspace-form hidden">
+    <input id="new-name" type="text" class="new-workspace-form__input" placeholder="Workspace name" maxlength="30" autocomplete="off">
+    <div id="color-picker" class="color-picker"></div>
+    <div class="new-workspace-form__actions">
+      <button id="create-btn" class="btn btn--primary" disabled>Create</button>
+      <button id="cancel-btn" class="btn btn--ghost">Cancel</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <button id="new-workspace-btn" class="btn btn--primary btn--full">+ New Workspace</button>
+  </footer>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
