@@ -11,6 +11,8 @@ import {
   getWorkspaceTabPreview,
   getSwitchState,
   isSwitchInProgress,
+  saveActiveWorkspaceSnapshot,
+  restoreActiveWorkspaceOnStartup,
 } from '../core/workspace-controller.js';
 import { getActiveWorkspace, updateTabCount } from '../core/group-manager.js';
 import { getCurrentWindowTabs } from '../core/tab-manager.js';
@@ -38,13 +40,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
  */
 chrome.runtime.onStartup.addListener(async () => {
   try {
-    const active = await getActiveWorkspace();
-    if (active) {
-      const tabs = await getCurrentWindowTabs();
-      await updateTabCount(active.id, tabs.length);
+    const restored = await restoreActiveWorkspaceOnStartup();
+    if (restored) {
+      console.log('[TabVault] Restored active workspace tabs on startup');
     }
   } catch (error) {
-    console.error('[TabVault] Startup sync failed:', error.message);
+    console.error('[TabVault] Startup restore failed:', error.message);
   }
 });
 
@@ -123,11 +124,20 @@ async function handleMessage(message) {
  * Listens for tab creation/removal to keep the active workspace's
  * tab count in sync in real time.
  */
-chrome.tabs.onCreated.addListener(debouncedTabCountSync);
-chrome.tabs.onRemoved.addListener(debouncedTabCountSync);
+chrome.tabs.onCreated.addListener(() => { debouncedTabCountSync(); debouncedSnapshotSave(); });
+chrome.tabs.onRemoved.addListener(() => { debouncedTabCountSync(); debouncedSnapshotSave(); });
+chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
+  if (changeInfo.url || changeInfo.status === 'complete') {
+    debouncedSnapshotSave();
+  }
+});
+chrome.tabs.onMoved.addListener(debouncedSnapshotSave);
 
 /** Timer ID for debounced tab count sync. */
 let syncTimer = null;
+
+/** Timer ID for debounced snapshot auto-save. */
+let snapshotTimer = null;
 
 /**
  * Debounced tab count synchronization.
@@ -149,4 +159,21 @@ function debouncedTabCountSync() {
       console.error('[TabVault] Tab count sync failed:', error.message);
     }
   }, 500);
+}
+
+/**
+ * Debounced auto-save of the active workspace's tab snapshot.
+ * Waits 2s after the last tab change to avoid excessive writes.
+ */
+function debouncedSnapshotSave() {
+  if (isSwitchInProgress()) return;
+
+  clearTimeout(snapshotTimer);
+  snapshotTimer = setTimeout(async () => {
+    try {
+      await saveActiveWorkspaceSnapshot();
+    } catch (error) {
+      console.error('[TabVault] Auto-save snapshot failed:', error.message);
+    }
+  }, 2000);
 }

@@ -227,6 +227,64 @@ export async function getWorkspaceTabPreview(workspaceId) {
 }
 
 /**
+ * Saves a snapshot of the active workspace's current tabs without switching.
+ * Called periodically on tab events so the snapshot stays up-to-date
+ * and survives a browser close/crash.
+ *
+ * @returns {Promise<void>}
+ */
+export async function saveActiveWorkspaceSnapshot() {
+  if (isSwitching) return;
+
+  const active = await getActiveWorkspace();
+  if (!active) return;
+
+  const scrollPositions = await captureScrollPositions();
+  const tabs = await getCurrentWindowTabs();
+
+  // Skip saving if only a blank new-tab page is open
+  const realTabs = tabs.filter(
+    (t) => t.url && t.url !== 'chrome://newtab/' && t.url !== 'about:blank'
+  );
+  if (realTabs.length === 0) return;
+
+  await persistSnapshot(active.id, tabs, scrollPositions);
+  await updateTabCount(active.id, tabs.length);
+}
+
+/**
+ * Restores the active workspace's tabs on browser startup if Chrome
+ * did not restore them itself (e.g., user has "Open the New Tab page" setting).
+ *
+ * @returns {Promise<boolean>} True if tabs were restored, false otherwise
+ */
+export async function restoreActiveWorkspaceOnStartup() {
+  const active = await getActiveWorkspace();
+  if (!active) return false;
+
+  const currentTabs = await getCurrentWindowTabs();
+
+  // If Chrome already restored real tabs, just update the snapshot
+  const realTabs = currentTabs.filter(
+    (t) => t.url && t.url !== 'chrome://newtab/' && t.url !== 'about:blank'
+  );
+  if (realTabs.length > 0) {
+    await persistSnapshot(active.id, currentTabs, {});
+    await updateTabCount(active.id, currentTabs.length);
+    return false;
+  }
+
+  // Chrome opened with only a new-tab page — try restoring from snapshot
+  const tabDescriptors = await loadSnapshot(active.id);
+  if (tabDescriptors.length === 0) return false;
+
+  const placeholderTabId = currentTabs.length === 1 ? currentTabs[0].id : null;
+  const restoredTabs = await restoreTabs(tabDescriptors, placeholderTabId);
+  await updateTabCount(active.id, restoredTabs.length);
+  return true;
+}
+
+/**
  * Initializes TabVault on first install.
  * Creates the default workspace if none exist.
  *
