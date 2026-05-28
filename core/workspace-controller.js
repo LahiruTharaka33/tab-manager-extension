@@ -22,6 +22,25 @@ import { getSnapshot, saveSnapshot } from '../storage/local-storage.js';
 import { getSettings } from '../storage/sync-storage.js';
 import { syncAllWorkspaces, getSyncStatus } from './sync-controller.js';
 
+/** New-tab URLs across Chromium-based browsers. */
+const NEW_TAB_URLS = [
+  'chrome://newtab/',
+  'edge://newtab/',
+  'brave://newtab/',
+  'vivaldi://newtab/',
+  'about:blank',
+];
+
+/**
+ * Checks if a URL is a new-tab or blank page across browsers.
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isNewTabUrl(url) {
+  return NEW_TAB_URLS.includes(url);
+}
+
 /**
  * @typedef {'idle'|'saving'|'closing'|'restoring'} SwitchState
  */
@@ -249,7 +268,7 @@ export async function saveActiveWorkspaceSnapshot() {
 
   // Skip saving if only a blank new-tab page is open
   const realTabs = tabs.filter(
-    (t) => t.url && t.url !== 'chrome://newtab/' && t.url !== 'about:blank'
+    (t) => t.url && !isNewTabUrl(t.url)
   );
   if (realTabs.length === 0) return;
 
@@ -269,9 +288,9 @@ export async function restoreActiveWorkspaceOnStartup() {
 
   const currentTabs = await getCurrentWindowTabs();
 
-  // If Chrome already restored real tabs, just update the snapshot
+  // If the browser already restored real tabs, just update the snapshot
   const realTabs = currentTabs.filter(
-    (t) => t.url && t.url !== 'chrome://newtab/' && t.url !== 'about:blank'
+    (t) => t.url && !isNewTabUrl(t.url)
   );
   if (realTabs.length > 0) {
     await persistSnapshot(active.id, currentTabs, {});
@@ -279,7 +298,7 @@ export async function restoreActiveWorkspaceOnStartup() {
     return false;
   }
 
-  // Chrome opened with only a new-tab page — try restoring from snapshot
+  // Browser opened with only a new-tab page — try restoring from snapshot
   const tabDescriptors = await loadSnapshot(active.id);
   if (tabDescriptors.length === 0) return false;
 

@@ -243,11 +243,15 @@ function bindEvents() {
   });
 
   openSidepanelBtn.addEventListener('click', async () => {
-    try {
-      await chrome.sidePanel.open({ windowId: (await chrome.windows.getCurrent()).id });
-      window.close();
-    } catch {
-      showError('Could not open side panel.');
+    if (typeof chrome.sidePanel?.open === 'function') {
+      try {
+        await chrome.sidePanel.open({ windowId: (await chrome.windows.getCurrent()).id });
+        window.close();
+      } catch {
+        showError('Could not open side panel.');
+      }
+    } else {
+      showError('Side panel is not supported in this browser.');
     }
   });
 }
