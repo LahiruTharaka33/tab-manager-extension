@@ -1,5 +1,20 @@
 // core/tab-manager.js — Open, close, and restore real browser tabs via the chrome.tabs API
 
+const INTERNAL_URL_PREFIXES = [
+  'chrome://', 'chrome-extension://', 'edge://', 'brave://',
+  'opera://', 'vivaldi://', 'devtools://', 'about:',
+];
+
+/**
+ * Checks if a URL is a browser-internal page that cannot be scripted.
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isInternalUrl(url) {
+  return INTERNAL_URL_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
+
 /**
  * Queries all tabs in the current window.
  *
@@ -133,7 +148,7 @@ export async function captureScrollPositions() {
   const positions = {};
 
   for (const tab of tabs) {
-    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('about:')) {
+    if (!tab.url || isInternalUrl(tab.url)) {
       continue;
     }
 
@@ -167,7 +182,7 @@ export async function captureAndCloseTab(tabId) {
     const tab = await chrome.tabs.get(tabId);
     let scrollY = 0;
 
-    if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
+    if (tab.url && !isInternalUrl(tab.url)) {
       try {
         const results = await chrome.scripting.executeScript({
           target: { tabId: tab.id },

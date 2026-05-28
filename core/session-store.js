@@ -63,6 +63,9 @@ export function isRestorableUrl(url) {
     'chrome-extension://',
     'devtools://',
     'edge://',
+    'brave://',
+    'opera://',
+    'vivaldi://',
     'about:',
     'chrome-search://',
   ];
