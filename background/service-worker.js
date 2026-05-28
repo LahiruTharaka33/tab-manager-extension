@@ -16,6 +16,16 @@ import {
 } from '../core/workspace-controller.js';
 import { getActiveWorkspace, updateTabCount } from '../core/group-manager.js';
 import { getCurrentWindowTabs } from '../core/tab-manager.js';
+import { signIn, signOut, getCurrentUser, onAuthStateChanged } from '../core/auth-service.js';
+import {
+  syncAllWorkspaces,
+  enableCloudSync,
+  disableCloudSync,
+  getSyncStatus,
+  initializeDeviceId,
+} from '../core/sync-controller.js';
+import { getSettings } from '../storage/sync-storage.js';
+import { CLOUD_SYNC_INTERVAL_MS } from '../utils/constants.js';
 
 /**
  * Runs on extension install or update.
@@ -28,6 +38,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       if (workspace) {
         console.log('[TabVault] Initialized with default workspace:', workspace.name);
       }
+      await initializeDeviceId();
     } catch (error) {
       console.error('[TabVault] Initialization failed:', error.message);
     }
@@ -44,6 +55,7 @@ chrome.runtime.onStartup.addListener(async () => {
     if (restored) {
       console.log('[TabVault] Restored active workspace tabs on startup');
     }
+    await initCloudSync();
   } catch (error) {
     console.error('[TabVault] Startup restore failed:', error.message);
   }
@@ -115,6 +127,27 @@ async function handleMessage(message) {
       return { tabCount: 0 };
     }
 
+    case 'SIGN_IN':
+      return signIn();
+
+    case 'SIGN_OUT':
+      return signOut();
+
+    case 'GET_AUTH_STATE':
+      return getCurrentUser();
+
+    case 'GET_SYNC_STATUS':
+      return getSyncStatus();
+
+    case 'TOGGLE_CLOUD_SYNC':
+      if (payload.enabled) {
+        return enableCloudSync();
+      }
+      return disableCloudSync();
+
+    case 'SYNC_NOW':
+      return syncAllWorkspaces();
+
     default:
       throw new Error(`Unknown action: "${action}"`);
   }
@@ -177,3 +210,60 @@ function debouncedSnapshotSave() {
     }
   }, 2000);
 }
+
+// ── Cloud sync initialization ──
+
+/**
+ * Initializes cloud sync: sets up periodic sync alarm and performs
+ * an initial sync if cloud sync is enabled.
+ */
+async function initCloudSync() {
+  try {
+    await initializeDeviceId();
+
+    const settings = await getSettings();
+    if (!settings.cloudSyncEnabled) return;
+
+    const user = await getCurrentUser();
+    if (!user) return;
+
+    // Set up periodic sync alarm
+    chrome.alarms.create('cloud-sync', {
+      periodInMinutes: CLOUD_SYNC_INTERVAL_MS / 60_000,
+    });
+
+    // Initial sync on startup
+    await syncAllWorkspaces();
+    console.log('[TabVault] Cloud sync initialized');
+  } catch (error) {
+    console.error('[TabVault] Cloud sync init failed:', error.message);
+  }
+}
+
+// Listen for the periodic sync alarm
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === 'cloud-sync') {
+    try {
+      const settings = await getSettings();
+      if (settings.cloudSyncEnabled) {
+        await syncAllWorkspaces();
+      }
+    } catch (error) {
+      console.error('[TabVault] Periodic sync failed:', error.message);
+    }
+  }
+});
+
+// Listen for auth state changes to start/stop sync
+onAuthStateChanged(async (user) => {
+  if (user) {
+    const settings = await getSettings();
+    if (settings.cloudSyncEnabled) {
+      chrome.alarms.create('cloud-sync', {
+        periodInMinutes: CLOUD_SYNC_INTERVAL_MS / 60_000,
+      });
+    }
+  } else {
+    chrome.alarms.clear('cloud-sync');
+  }
+});

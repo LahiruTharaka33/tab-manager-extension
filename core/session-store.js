@@ -1,6 +1,8 @@
 // core/session-store.js — Serialize open browser tabs into snapshots and deserialize them for restoration
 
 import { getSnapshot, saveSnapshot, removeSnapshot } from '../storage/local-storage.js';
+import { getSettings } from '../storage/sync-storage.js';
+import { syncWorkspace, getSyncStatus } from './sync-controller.js';
 
 /**
  * Serializes an array of chrome.tabs.Tab objects into a lightweight snapshot.
@@ -95,6 +97,10 @@ export async function loadSnapshot(workspaceId) {
 export async function persistSnapshot(workspaceId, tabs, scrollPositions = {}) {
   const snapshot = serializeTabs(workspaceId, tabs, scrollPositions);
   await saveSnapshot(workspaceId, snapshot);
+
+  // Trigger cloud sync if enabled (non-blocking)
+  triggerCloudSync(workspaceId);
+
   return snapshot;
 }
 
@@ -107,4 +113,20 @@ export async function persistSnapshot(workspaceId, tabs, scrollPositions = {}) {
  */
 export async function deleteSnapshot(workspaceId) {
   return removeSnapshot(workspaceId);
+}
+
+/**
+ * Triggers a non-blocking cloud sync for a workspace if cloud sync is enabled.
+ *
+ * @param {string} workspaceId
+ */
+async function triggerCloudSync(workspaceId) {
+  try {
+    const settings = await getSettings();
+    if (!settings.cloudSyncEnabled) return;
+
+    await syncWorkspace(workspaceId);
+  } catch (error) {
+    console.warn('[SessionStore] Cloud sync failed for workspace:', workspaceId, error.message);
+  }
 }

@@ -92,3 +92,44 @@ export const TIME_UNITS = Object.freeze({
   MONTH: 2_592_000_000,
   YEAR: 31_536_000_000,
 });
+
+/**
+ * Cloud sync interval in milliseconds (5 minutes).
+ * @type {number}
+ */
+export const CLOUD_SYNC_INTERVAL_MS = 300_000;
+
+/**
+ * Cloud sync status types.
+ * @enum {string}
+ */
+export const SYNC_STATUS = Object.freeze({
+  IDLE: 'idle',
+  SYNCING: 'syncing',
+  SUCCESS: 'success',
+  ERROR: 'error',
+  OFFLINE: 'offline',
+});
+
+/**
+ * Cloud sync error codes.
+ * @enum {string}
+ */
+export const SYNC_ERRORS = Object.freeze({
+  AUTH_REQUIRED: 'auth_required',
+  NETWORK_ERROR: 'network_error',
+  QUOTA_EXCEEDED: 'quota_exceeded',
+  CONFLICT: 'conflict',
+  UNKNOWN: 'unknown',
+});
+
+/**
+ * Storage keys used for cloud sync state.
+ * @enum {string}
+ */
+export const CLOUD_STORAGE_KEYS = Object.freeze({
+  AUTH_STATE: 'auth_state',
+  DEVICE_ID: 'device_id',
+  LAST_SYNC_TIME: 'last_sync_time',
+  SYNC_QUEUE: 'sync_queue',
+});

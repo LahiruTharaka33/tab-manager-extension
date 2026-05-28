@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TabVault",
-  "version": "1.0.0",
-  "description": "A workspace-based tab manager. Save, switch, and restore tab sessions with named workspaces.",
+  "version": "1.1.0",
+  "description": "A workspace-based tab manager. Save, switch, and restore tab sessions with named workspaces. Cloud sync across devices.",
 
   "permissions": [
     "tabs",
@@ -10,12 +10,24 @@
     "scripting",
     "sidePanel",
     "identity",
-    "tabGroups"
+    "tabGroups",
+    "alarms"
   ],
 
   "host_permissions": [
     "<all_urls>"
   ],
+
+  "oauth2": {
+    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/datastore"
+    ]
+  },
+
+  "key": "YOUR_EXTENSION_KEY",
 
   "background": {
     "service_worker": "background/service-worker.js",
