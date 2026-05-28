@@ -1,5 +1,296 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><title>TabVault Settings</title></head>
-<body><p>Settings will be available in Phase 6.</p></body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabVault Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      color: #202124;
+      background: #f8f9fa;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: #202124;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e8eaed;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    .card__title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #202124;
+    }
+
+    /* Auth section */
+    .auth-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .auth-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e8eaed;
+      flex-shrink: 0;
+    }
+
+    .auth-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .auth-info__name {
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    .auth-info__email {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 2px;
+    }
+
+    .auth-placeholder {
+      font-size: 13px;
+      color: #5f6368;
+      flex: 1;
+    }
+
+    .btn {
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .btn--primary {
+      background: #1a73e8;
+      color: #fff;
+    }
+
+    .btn--primary:hover {
+      background: #1765cc;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .btn--danger {
+      background: #fff;
+      color: #c5221f;
+      border: 1px solid #dadce0;
+    }
+
+    .btn--danger:hover {
+      background: #fce8e6;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Toggle */
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .setting-row__label {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .setting-row__desc {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 2px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle__slider {
+      position: absolute;
+      inset: 0;
+      background: #dadce0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle__slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+
+    .toggle input:checked + .toggle__slider {
+      background: #1a73e8;
+    }
+
+    .toggle input:checked + .toggle__slider::before {
+      transform: translateX(20px);
+    }
+
+    /* Sync status */
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid #f1f3f4;
+      margin-top: 12px;
+    }
+
+    .sync-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .sync-indicator--idle { background: #dadce0; }
+    .sync-indicator--syncing { background: #fbbc04; animation: pulse 1s infinite; }
+    .sync-indicator--success { background: #34a853; }
+    .sync-indicator--error { background: #ea4335; }
+    .sync-indicator--offline { background: #9e9e9e; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .sync-status__info {
+      flex: 1;
+    }
+
+    .sync-status__text {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .sync-status__time {
+      font-size: 11px;
+      color: #5f6368;
+      margin-top: 2px;
+    }
+
+    .btn--sync {
+      font-size: 12px;
+      padding: 6px 14px;
+      background: #fff;
+      border: 1px solid #dadce0;
+      color: #1a73e8;
+    }
+
+    .btn--sync:hover {
+      background: #f0f6ff;
+    }
+
+    /* Hidden */
+    .hidden { display: none !important; }
+
+    /* Error */
+    .error-msg {
+      font-size: 12px;
+      color: #c5221f;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>TabVault Settings</h1>
+
+    <!-- Account section -->
+    <div class="card">
+      <div class="card__title">Account</div>
+      <div class="auth-section">
+        <img id="auth-avatar" class="auth-avatar hidden" alt="User avatar">
+        <div id="auth-info" class="auth-info hidden">
+          <div id="auth-name" class="auth-info__name"></div>
+          <div id="auth-email" class="auth-info__email"></div>
+        </div>
+        <div id="auth-placeholder" class="auth-placeholder">Sign in with Google to enable cloud sync.</div>
+        <button id="sign-in-btn" class="btn btn--primary">Sign in with Google</button>
+        <button id="sign-out-btn" class="btn btn--danger hidden">Sign out</button>
+      </div>
+      <div id="auth-error" class="error-msg hidden"></div>
+    </div>
+
+    <!-- Cloud sync section -->
+    <div class="card">
+      <div class="card__title">Cloud Sync</div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-row__label">Enable cloud sync</div>
+          <div class="setting-row__desc">Sync workspaces across devices using your Google account</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="cloud-sync-toggle" disabled>
+          <span class="toggle__slider"></span>
+        </label>
+      </div>
+
+      <div id="sync-status-section" class="sync-status hidden">
+        <div id="sync-indicator" class="sync-indicator sync-indicator--idle"></div>
+        <div class="sync-status__info">
+          <div id="sync-status-text" class="sync-status__text">Not synced</div>
+          <div id="sync-last-time" class="sync-status__time"></div>
+        </div>
+        <button id="sync-now-btn" class="btn btn--sync" disabled>Sync Now</button>
+      </div>
+      <div id="sync-error" class="error-msg hidden"></div>
+    </div>
+  </div>
+
+  <script src="options.js" type="module"></script>
+</body>
 </html>

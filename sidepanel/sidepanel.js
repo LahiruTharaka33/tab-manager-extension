@@ -43,6 +43,9 @@ const renameDialog = document.getElementById('rename-dialog');
 const renameInput = document.getElementById('rename-input');
 const renameConfirm = document.getElementById('rename-confirm');
 const renameCancel = document.getElementById('rename-cancel');
+const syncBadge = document.getElementById('sync-badge');
+const syncBadgeDot = document.getElementById('sync-badge-dot');
+const syncBadgeText = document.getElementById('sync-badge-text');
 
 // ── Initialization ──
 
@@ -52,6 +55,8 @@ async function init() {
   setupColorPicker();
   bindEvents();
   await loadWorkspaces();
+  await updateSyncBadge();
+  startSyncBadgePoll();
 }
 
 // ── Data loading ──
@@ -500,6 +505,47 @@ function showNewWorkspaceForm() {
 function hideNewWorkspaceForm() {
   newWorkspaceForm.classList.add('hidden');
   newWorkspaceBtn.classList.remove('hidden');
+}
+
+// ── Sync badge ──
+
+/**
+ * Updates the sync status badge in the header.
+ */
+async function updateSyncBadge() {
+  try {
+    const status = await sendMessage('GET_SYNC_STATUS');
+    const settings = await chrome.storage.sync.get('tabvault_settings');
+    const cloudEnabled = settings.tabvault_settings?.cloudSyncEnabled || false;
+
+    if (!cloudEnabled) {
+      syncBadge.classList.add('hidden');
+      return;
+    }
+
+    syncBadge.classList.remove('hidden');
+
+    syncBadgeDot.className = 'sync-badge__dot';
+    syncBadgeDot.classList.add(`sync-badge__dot--${status.status}`);
+
+    const labels = {
+      idle: 'Sync',
+      syncing: 'Syncing…',
+      success: 'Synced',
+      error: 'Sync error',
+      offline: 'Offline',
+    };
+    syncBadgeText.textContent = labels[status.status] || 'Sync';
+  } catch {
+    syncBadge.classList.add('hidden');
+  }
+}
+
+/**
+ * Polls sync status every 10 seconds to keep the badge up to date.
+ */
+function startSyncBadgePoll() {
+  setInterval(updateSyncBadge, 10_000);
 }
 
 /**

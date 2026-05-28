@@ -1,6 +1,6 @@
 // storage/local-storage.js — Wrapper around chrome.storage.local for device-only data (tab snapshots)
 
-import { STORAGE_KEYS } from '../utils/constants.js';
+import { STORAGE_KEYS, CLOUD_STORAGE_KEYS } from '../utils/constants.js';
 
 /**
  * Reads a value from chrome.storage.local by key.
@@ -106,4 +106,19 @@ export async function getLocalBytesInUse() {
   } catch (error) {
     throw new Error(`[LocalStorage] Failed to get bytes in use: ${error.message}`);
   }
+}
+
+/**
+ * Retrieves (or generates) a unique device ID for this browser installation.
+ * Stored in chrome.storage.local under the DEVICE_ID key.
+ *
+ * @returns {Promise<string>} The device ID
+ */
+export async function getDeviceId() {
+  let deviceId = await localGet(CLOUD_STORAGE_KEYS.DEVICE_ID);
+  if (!deviceId) {
+    deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    await localSet(CLOUD_STORAGE_KEYS.DEVICE_ID, deviceId);
+  }
+  return deviceId;
 }

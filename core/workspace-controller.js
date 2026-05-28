@@ -19,6 +19,8 @@ import {
   captureAndCloseTab,
 } from './tab-manager.js';
 import { getSnapshot, saveSnapshot } from '../storage/local-storage.js';
+import { getSettings } from '../storage/sync-storage.js';
+import { syncAllWorkspaces, getSyncStatus } from './sync-controller.js';
 
 /**
  * @typedef {'idle'|'saving'|'closing'|'restoring'} SwitchState
@@ -113,6 +115,9 @@ export async function switchWorkspace(targetWorkspaceId) {
 
     // Update tab count on the target workspace
     await updateTabCount(targetWorkspaceId, restoredTabs.length || 1);
+
+    // Non-blocking cloud sync after workspace switch
+    triggerPostSwitchSync();
 
     return {
       previousWorkspaceId: currentWorkspace.id,
@@ -292,4 +297,17 @@ export async function restoreActiveWorkspaceOnStartup() {
  */
 export async function initialize() {
   return initializeDefaultWorkspace();
+}
+
+/**
+ * Triggers a non-blocking full cloud sync after workspace operations.
+ */
+async function triggerPostSwitchSync() {
+  try {
+    const settings = await getSettings();
+    if (!settings.cloudSyncEnabled) return;
+    await syncAllWorkspaces();
+  } catch (error) {
+    console.warn('[WorkspaceController] Post-switch sync failed:', error.message);
+  }
 }
