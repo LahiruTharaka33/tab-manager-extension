@@ -2,7 +2,6 @@
 
 import { CLOUD_STORAGE_KEYS } from '../utils/constants.js';
 import { localGet, localSet, localRemove } from '../storage/local-storage.js';
-import { hasIdentityApi } from '../utils/browser-detect.js';
 import { getFirebaseConfig } from '../lib/firebase-config.js';
 
 /** @type {Array<Function>} Auth state change listeners */
@@ -16,10 +15,7 @@ const authListeners = [];
  */
 export async function signIn() {
   try {
-    const token = hasIdentityApi()
-      ? await getAuthTokenViaIdentity(true)
-      : await getAuthTokenViaWeb();
-
+    const token = await getAuthTokenWithFallback(true);
     const userInfo = await fetchUserInfo(token);
 
     const user = {
@@ -48,8 +44,10 @@ export async function signOut() {
     const authState = await localGet(CLOUD_STORAGE_KEYS.AUTH_STATE);
     if (authState?.token) {
       await revokeToken(authState.token);
-      if (hasIdentityApi()) {
+      try {
         await removeCachedToken(authState.token);
+      } catch {
+        // removeCachedAuthToken not supported on this browser
       }
     }
   } catch {
@@ -70,26 +68,16 @@ export async function getCurrentUser() {
   const authState = await localGet(CLOUD_STORAGE_KEYS.AUTH_STATE);
   if (!authState?.token) return null;
 
-  if (hasIdentityApi()) {
-    try {
-      const token = await getAuthTokenViaIdentity(false);
-      if (token) {
-        authState.token = token;
-        await localSet(CLOUD_STORAGE_KEYS.AUTH_STATE, authState);
-        return authState;
-      }
-    } catch {
-      // Token expired or invalid
-    }
-    return null;
-  }
-
-  // For web-based OAuth, validate the stored token
+  // Try silent token refresh, then fall back to token validation
   try {
-    const valid = await validateToken(authState.token);
-    if (valid) return authState;
+    const token = await getAuthTokenWithFallback(false);
+    if (token) {
+      authState.token = token;
+      await localSet(CLOUD_STORAGE_KEYS.AUTH_STATE, authState);
+      return authState;
+    }
   } catch {
-    // Token invalid
+    // Token expired or invalid
   }
 
   return null;
@@ -102,17 +90,12 @@ export async function getCurrentUser() {
  * @returns {Promise<string|null>}
  */
 export async function getValidToken() {
-  if (hasIdentityApi()) {
-    try {
-      const token = await getAuthTokenViaIdentity(false);
-      return token || null;
-    } catch {
-      return null;
-    }
+  try {
+    const token = await getAuthTokenWithFallback(false);
+    return token || null;
+  } catch {
+    return null;
   }
-
-  const authState = await localGet(CLOUD_STORAGE_KEYS.AUTH_STATE);
-  return authState?.token || null;
 }
 
 /**
@@ -127,6 +110,41 @@ export function onAuthStateChanged(callback) {
     const index = authListeners.indexOf(callback);
     if (index > -1) authListeners.splice(index, 1);
   };
+}
+
+// ── Token acquisition with automatic fallback ──
+
+/**
+ * Attempts to get an auth token via chrome.identity.getAuthToken first.
+ * If that API is unsupported (e.g. Edge, Brave), falls back to launchWebAuthFlow.
+ * For non-interactive calls where launchWebAuthFlow can't be used, validates the stored token.
+ *
+ * @param {boolean} interactive - Whether to show sign-in UI
+ * @returns {Promise<string>} OAuth access token
+ */
+async function getAuthTokenWithFallback(interactive) {
+  // Try chrome.identity.getAuthToken first (works on Chrome)
+  if (typeof chrome.identity?.getAuthToken === 'function') {
+    try {
+      return await getAuthTokenViaIdentity(interactive);
+    } catch {
+      // API exists but unsupported (e.g. Edge stubs it) — fall through
+    }
+  }
+
+  // Fallback: interactive sign-in via launchWebAuthFlow
+  if (interactive) {
+    return await getAuthTokenViaWeb();
+  }
+
+  // Non-interactive: validate the stored token
+  const authState = await localGet(CLOUD_STORAGE_KEYS.AUTH_STATE);
+  if (authState?.token) {
+    const valid = await validateToken(authState.token);
+    if (valid) return authState.token;
+  }
+
+  throw new Error('No valid token available');
 }
 
 // ── Chrome Identity API (Chrome-only) ──
